@@ -30,14 +30,18 @@ const allowedOrigins = new Set(
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.has(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin) || /^https:\/\/.*\.onrender\.com$/.test(origin)) {
       return callback(null, true);
     }
-    return callback(new Error(`CORS policy blocked request from origin ${origin}`));
+
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization'],
 };
 
 const io = new Server(httpServer, {
@@ -51,6 +55,19 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+app.use((req, res, next) => {
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
