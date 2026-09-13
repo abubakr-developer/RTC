@@ -21,19 +21,36 @@ const __dirname = dirname(__filename);
 const app = express();
 const httpServer = createServer(app);
 
+const allowedOrigins = new Set(
+  (process.env.ALLOWED_ORIGINS || `${process.env.CLIENT_URL || 'http://localhost:3000'},http://localhost:3001,https://rtc-sigma-liard.vercel.app`)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy blocked request from origin ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: corsOptions.origin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
 
 // Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
@@ -51,17 +68,47 @@ app.get('/api/health', (req, res) => {
 // Socket.io handler
 socketHandler(io);
 
+const normalizePort = (val) => {
+  const port = parseInt(val, 10);
+  if (Number.isNaN(port)) return val; // named pipe
+  if (port >= 0) return port;
+  return false;
+};
+
+const createErrorHandler = (port) => (error) => {
+  if (error.syscall !== 'listen') throw error;
+  const bind = typeof port === 'string' ? `Pipe ${port}` : `Port ${port}`;
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(`❌ ${bind} requires elevated privileges.`);
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(`❌ ${bind} is already in use. Stop the process using this port or set a different PORT.`);
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+};
+
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/rtc-app';
+
+mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 })
   .then(() => {
     console.log('✅ MongoDB connected successfully');
-    const PORT = process.env.PORT || 5000;
+    const PORT = normalizePort(process.env.PORT || '5000');
+    httpServer.on('error', createErrorHandler(PORT));
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error. Check that MongoDB is running and the MONGODB_URI is valid.');
+    console.error('Connection string used:', mongoUri);
+    console.error(err);
     process.exit(1);
   });
 
