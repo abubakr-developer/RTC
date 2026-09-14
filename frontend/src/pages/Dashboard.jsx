@@ -93,9 +93,9 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
       {/* Sidebar */}
-      <div className="w-64 bg-gray-900/80 border-r border-gray-800 flex flex-col">
+      <div className="w-full md:w-64 bg-gray-900/80 border-b md:border-b-0 md:border-r border-gray-800 flex flex-col">
         {/* Logo */}
         <div className="p-5 border-b border-gray-800">
           <div className="flex items-center gap-3">
@@ -161,8 +161,8 @@ const Dashboard = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-gray-900/60 border-b border-gray-800 px-6 py-4">
-          <div className="flex items-center justify-between">
+        <header className="bg-gray-900/60 border-b border-gray-800 px-4 sm:px-6 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-xl font-semibold text-white">
                 {activeTab === 'rooms' && 'Video Rooms'}
@@ -175,23 +175,23 @@ const Dashboard = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Search */}
-              <div className="relative">
+              <div className="relative w-full sm:w-52">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="text"
                   placeholder={activeTab === 'rooms' ? 'Search rooms...' : 'Search people...'}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="input-field pl-9 w-52 py-2 text-sm"
+                  className="input-field pl-9 w-full py-2 text-sm"
                 />
               </div>
 
               {activeTab === 'rooms' && (
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="btn-primary flex items-center gap-2 py-2"
+                  className="btn-primary flex items-center justify-center gap-2 py-2"
                 >
                   <Plus className="w-4 h-4" />
                   New Room
@@ -202,7 +202,7 @@ const Dashboard = () => {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />

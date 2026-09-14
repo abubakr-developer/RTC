@@ -35,7 +35,7 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-indigo-950/20 to-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-indigo-950/20 to-gray-950 flex items-center justify-center p-3 sm:p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl" />
@@ -53,7 +53,7 @@ const AuthPage = () => {
         </div>
 
         {/* Card */}
-        <div className="glass p-8">
+        <div className="glass p-5 sm:p-8">
           {/* Tabs */}
           <div className="flex bg-gray-900/60 rounded-lg p-1 mb-6">
             <button

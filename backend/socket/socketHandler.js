@@ -6,6 +6,8 @@ import Room from '../models/Room.js';
 const activeRooms = new Map(); // roomId -> Set of socket ids
 const socketUsers = new Map(); // socketId -> userId
 
+const normalizeRoomId = (value) => String(value ?? '').trim().toUpperCase();
+
 export const socketHandler = (io) => {
   // Auth middleware for socket
   io.use(async (socket, next) => {
@@ -40,7 +42,7 @@ export const socketHandler = (io) => {
     // ─── ROOM EVENTS ───────────────────────────────────────────────────────
 
     socket.on('room:join', async ({ roomId }) => {
-      const normalizedRoomId = String(roomId || '').trim().toUpperCase();
+      const normalizedRoomId = normalizeRoomId(roomId);
       if (!normalizedRoomId) return;
 
       if (socket.roomId && socket.roomId !== normalizedRoomId) {
@@ -49,7 +51,10 @@ export const socketHandler = (io) => {
 
       socket.join(normalizedRoomId);
 
-      if (!activeRooms.has(normalizedRoomId)) activeRooms.set(normalizedRoomId, new Set());
+      if (!activeRooms.has(normalizedRoomId)) {
+        activeRooms.set(normalizedRoomId, new Set());
+      }
+
       const room = activeRooms.get(normalizedRoomId);
       room.add(socket.id);
       socket.roomId = normalizedRoomId;
@@ -58,7 +63,6 @@ export const socketHandler = (io) => {
         .filter((peerId) => peerId !== socket.id)
         .map((peerId) => ({ peerId, socketId: peerId }));
 
-      // Notify everyone already in the room about the new user
       existingPeers.forEach(({ peerId }) => {
         io.to(peerId).emit('peer:new', {
           peerId: socket.id,
@@ -68,10 +72,8 @@ export const socketHandler = (io) => {
         });
       });
 
-      // Send current peers to the new user
       socket.emit('room:peers', existingPeers);
 
-      // Send system message to the room
       socket.to(normalizedRoomId).emit('chat:message', {
         type: 'system',
         content: `${socket.user.username} joined the room`,
