@@ -17,6 +17,7 @@ const Dashboard = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('rooms');
+  const [joinCode, setJoinCode] = useState('');
   const [newRoom, setNewRoom] = useState({
     name: '',
     description: '',
@@ -66,6 +67,17 @@ const Dashboard = () => {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to join room');
     }
+  };
+
+  const joinRoomByCode = async (e) => {
+    e.preventDefault();
+    const roomId = joinCode.trim();
+    if (!roomId) {
+      toast.error('Enter a room code to join');
+      return;
+    }
+
+    await joinRoom(roomId);
   };
 
   const filteredRooms = rooms.filter(r =>
@@ -198,18 +210,32 @@ const Dashboard = () => {
                 <div>
                   {/* Quick join */}
                   <div className="card mb-6 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border-indigo-600/30">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-white">Start Instantly</h3>
-                        <p className="text-gray-400 text-sm mt-1">Create a new room and invite others to join</p>
+                        <p className="text-gray-400 text-sm mt-1">Create a room and share the invite link with others</p>
                       </div>
-                      <button
-                        onClick={() => setShowCreate(true)}
-                        className="btn-primary flex items-center gap-2"
-                      >
-                        <Video className="w-4 h-4" />
-                        New Meeting
-                      </button>
+
+                      <form onSubmit={joinRoomByCode} className="flex gap-2 w-full max-w-md">
+                        <input
+                          type="text"
+                          value={joinCode}
+                          onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                          placeholder="Enter room code"
+                          className="input-field flex-1 text-sm"
+                        />
+                        <button type="submit" className="btn-secondary px-4 py-2 text-sm">
+                          Join
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCreate(true)}
+                          className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
+                        >
+                          <Video className="w-4 h-4" />
+                          New Room
+                        </button>
+                      </form>
                     </div>
                   </div>
 
