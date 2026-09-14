@@ -40,13 +40,26 @@ export const socketHandler = (io) => {
     // ─── ROOM EVENTS ───────────────────────────────────────────────────────
 
     socket.on('room:join', async ({ roomId }) => {
-      socket.join(roomId);
+      const normalizedRoomId = String(roomId || '').trim().toUpperCase();
+      if (!normalizedRoomId) return;
 
-      if (!activeRooms.has(roomId)) activeRooms.set(roomId, new Set());
-      const room = activeRooms.get(roomId);
+      if (socket.roomId && socket.roomId !== normalizedRoomId) {
+        handleLeaveRoom(socket, socket.roomId, io);
+      }
 
-      // Notify existing peers about the new user
-      room.forEach((peerId) => {
+      socket.join(normalizedRoomId);
+
+      if (!activeRooms.has(normalizedRoomId)) activeRooms.set(normalizedRoomId, new Set());
+      const room = activeRooms.get(normalizedRoomId);
+      room.add(socket.id);
+      socket.roomId = normalizedRoomId;
+
+      const existingPeers = Array.from(room)
+        .filter((peerId) => peerId !== socket.id)
+        .map((peerId) => ({ peerId, socketId: peerId }));
+
+      // Notify everyone already in the room about the new user
+      existingPeers.forEach(({ peerId }) => {
         io.to(peerId).emit('peer:new', {
           peerId: socket.id,
           userId: socket.user._id,
@@ -55,24 +68,17 @@ export const socketHandler = (io) => {
         });
       });
 
-      // Send existing peers to the new user
-      const existingPeers = Array.from(room).map((peerId) => ({
-        peerId,
-        socketId: peerId,
-      }));
+      // Send current peers to the new user
       socket.emit('room:peers', existingPeers);
 
-      room.add(socket.id);
-      socket.roomId = roomId;
-
-      // Send system message
-      socket.to(roomId).emit('chat:message', {
+      // Send system message to the room
+      socket.to(normalizedRoomId).emit('chat:message', {
         type: 'system',
         content: `${socket.user.username} joined the room`,
         timestamp: new Date(),
       });
 
-      console.log(`Room ${roomId}: ${room.size} participants`);
+      console.log(`Room ${normalizedRoomId}: ${room.size} participants`);
     });
 
     socket.on('room:leave', async ({ roomId }) => {

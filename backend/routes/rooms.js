@@ -46,7 +46,8 @@ router.get('/', auth, async (req, res) => {
 // Get room by roomId
 router.get('/:roomId', auth, async (req, res) => {
   try {
-    const room = await Room.findOne({ roomId: req.params.roomId })
+    const roomId = String(req.params.roomId || '').trim().toUpperCase();
+    const room = await Room.findOne({ roomId })
       .populate('host', 'username avatar')
       .populate('participants', 'username avatar')
       .populate('messages.sender', 'username avatar');
@@ -60,7 +61,8 @@ router.get('/:roomId', auth, async (req, res) => {
 // Join room
 router.post('/:roomId/join', auth, async (req, res) => {
   try {
-    const room = await Room.findOne({ roomId: req.params.roomId });
+    const roomId = String(req.params.roomId || '').trim().toUpperCase();
+    const room = await Room.findOne({ roomId });
     if (!room) return res.status(404).json({ message: 'Room not found' });
 
     const alreadyParticipant = room.participants.some(p => p.toString() === req.user._id.toString());

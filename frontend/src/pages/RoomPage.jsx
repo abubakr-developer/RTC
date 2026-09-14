@@ -14,12 +14,14 @@ import Whiteboard from '../components/Whiteboard/Whiteboard';
 import api from '../utils/api';
 
 const RoomPage = () => {
-  const { roomId } = useParams();
+  const { roomId: rawRoomId } = useParams();
+  const roomId = rawRoomId?.trim().toUpperCase();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { socket } = useSocket();
 
   const [room, setRoom] = useState(null);
+  const [joinRequests, setJoinRequests] = useState([]);
   const [sidePanel, setSidePanel] = useState(null); // 'chat' | 'whiteboard' | null
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -102,6 +104,34 @@ const RoomPage = () => {
 
   const peerCount = Object.keys(peers).length;
 
+  const loadJoinRequests = async () => {
+    if (!roomId || !user || !room || room.host?._id !== user._id) return;
+
+    try {
+      const { data } = await api.get(`/rooms/${roomId}/requests`);
+      setJoinRequests(data);
+    } catch (err) {
+      console.error('Failed to load join requests', err);
+    }
+  };
+
+  const handleApproveRequest = async (targetUserId) => {
+    try {
+      await api.post(`/rooms/${roomId}/requests/${targetUserId}/approve`);
+      toast.success('User approved and can join the room.');
+      await loadJoinRequests();
+      const { data: roomData } = await api.get(`/rooms/${roomId}`);
+      setRoom(roomData);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve user');
+    }
+  };
+
+  useEffect(() => {
+    if (!room) return;
+    loadJoinRequests();
+  }, [room, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -138,6 +168,30 @@ const RoomPage = () => {
           <span className="text-xs text-gray-500">LIVE</span>
         </div>
       </header>
+
+      {room?.host?._id === user?._id && joinRequests.length > 0 && (
+        <div className="border-b border-indigo-500/30 bg-indigo-900/20 px-4 py-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-indigo-200">Join requests</p>
+              <p className="text-xs text-indigo-300/80">Approve people before they can enter the room</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {joinRequests.map(req => (
+                <div key={req.user._id} className="flex items-center gap-2 rounded-lg border border-indigo-500/40 bg-gray-900/60 px-3 py-2">
+                  <span className="text-sm text-white">{req.user.username}</span>
+                  <button
+                    onClick={() => handleApproveRequest(req.user._id)}
+                    className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-500"
+                  >
+                    Approve
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content area */}
       <div className="flex-1 flex overflow-hidden">
