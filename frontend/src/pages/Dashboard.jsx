@@ -62,7 +62,11 @@ const Dashboard = () => {
 
   const joinRoom = async (roomId) => {
     try {
-      await api.post(`/rooms/${roomId}/join`);
+      const { data } = await api.post(`/rooms/${roomId}/join`);
+      if (data.status === 'pending') {
+        toast.success('Join request sent. Waiting for host approval.');
+        return;
+      }
       navigate(`/room/${roomId}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to join room');

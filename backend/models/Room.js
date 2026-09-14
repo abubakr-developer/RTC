@@ -10,11 +10,18 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
+const joinRequestSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  requestedAt: { type: Date, default: Date.now },
+}, { _id: true });
+
 const roomSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
   host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  joinRequests: [joinRequestSchema],
   isPrivate: { type: Boolean, default: false },
   password: { type: String, default: '' },
   maxParticipants: { type: Number, default: 10 },

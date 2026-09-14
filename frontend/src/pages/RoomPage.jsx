@@ -45,10 +45,17 @@ const RoomPage = () => {
 
     const init = async () => {
       try {
-        await api.post(`/rooms/${roomId}/join`);
+        const { data } = await api.post(`/rooms/${roomId}/join`);
 
-        const { data } = await api.get(`/rooms/${roomId}`);
-        setRoom(data);
+        if (data.status === 'pending') {
+          toast('Your join request is waiting for host approval.', { icon: '⏳' });
+          setLoading(false);
+          navigate('/dashboard');
+          return;
+        }
+
+        const { data: roomData } = await api.get(`/rooms/${roomId}`);
+        setRoom(roomData);
 
         const stream = await initLocalStream();
         if (localVideoRef.current && stream) {
