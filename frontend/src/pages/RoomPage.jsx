@@ -45,6 +45,8 @@ const RoomPage = () => {
 
     const init = async () => {
       try {
+        await api.post(`/rooms/${roomId}/join`);
+
         const { data } = await api.get(`/rooms/${roomId}`);
         setRoom(data);
 
@@ -55,7 +57,7 @@ const RoomPage = () => {
 
         socket.emit('room:join', { roomId });
       } catch (err) {
-        toast.error('Failed to join room');
+        toast.error(err.response?.data?.message || 'Failed to join room');
         navigate('/dashboard');
       } finally {
         setLoading(false);
@@ -83,11 +85,12 @@ const RoomPage = () => {
     navigate('/dashboard');
   };
 
-  const copyRoomId = () => {
-    navigator.clipboard.writeText(roomId);
+  const copyInviteLink = () => {
+    const inviteLink = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard.writeText(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast.success('Room ID copied!');
+    toast.success('Invite link copied!');
   };
 
   const peerCount = Object.keys(peers).length;
@@ -112,7 +115,7 @@ const RoomPage = () => {
             <h1 className="text-white font-semibold text-sm">{room?.name || 'Meeting Room'}</h1>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500 font-mono">{roomId}</span>
-              <button onClick={copyRoomId} className="text-gray-600 hover:text-indigo-400 transition-colors">
+              <button onClick={copyInviteLink} className="text-gray-600 hover:text-indigo-400 transition-colors" title="Copy invite link">
                 {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>

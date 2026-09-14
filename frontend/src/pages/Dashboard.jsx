@@ -50,7 +50,9 @@ const Dashboard = () => {
       setRooms(prev => [data, ...prev]);
       setShowCreate(false);
       setNewRoom({ name: '', description: '', isPrivate: false, maxParticipants: 10 });
-      toast.success('Room created!');
+      const inviteLink = `${window.location.origin}/room/${data.roomId}`;
+      await navigator.clipboard.writeText(inviteLink).catch(() => {});
+      toast.success('Room created! Invite link copied.');
       navigate(`/room/${data.roomId}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create room');
