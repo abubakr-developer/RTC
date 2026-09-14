@@ -28,15 +28,20 @@ const allowedOrigins = new Set(
     .filter(Boolean)
 );
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  return allowedOrigins.has(origin)
+    || /^https:\/\/.*\.vercel\.app$/.test(origin)
+    || /^https:\/\/.*\.onrender\.com$/.test(origin);
+};
+
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.has(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin) || /^https:\/\/.*\.onrender\.com$/.test(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
 
-    return callback(null, true);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -46,7 +51,13 @@ const corsOptions = {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: corsOptions.origin,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin ${origin} not allowed by Socket.IO CORS`));
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -55,19 +66,6 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use((req, res, next) => {
-  const requestOrigin = req.headers.origin;
-  if (requestOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  }
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
-});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
